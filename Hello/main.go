@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -60,17 +61,11 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 	// fmt.Printf("IDs found: %v\n", albums)
-	// explicitInsert(insertLine{
-	// 	title:     "teste",
-	// 	score:     "1",
-	// 	id:        "2",
-	// 	url:       "teste",
-	// 	commsNum:  "123",
-	// 	created:   "hoje",
-	// 	body:      "oi",
-	// 	timestamp: "ontem",
-	// })
+	fmt.Println(time.Now())
+	explicitInsert()
+	fmt.Println(time.Now())
 	implicitInsert()
+	fmt.Println(time.Now())
 	//readCSV()
 	deleteAll()
 }
@@ -99,19 +94,43 @@ func main() {
 // 	return idResult, nil
 // }
 
-func explicitInsert(value insertLine) {
-	updateMoney, err := db.Prepare("INSERT INTO teste set value=?")
+func explicitInsert() {
+	insertNewLine, err := db.Prepare("INSERT INTO arquivo(title, score, id, url, comms_num, created, body, timestamp) VALUES (?,?,?,?,?,?,?,?)")
+	if err != nil {
+		return
+	}
+	csvFile, err := os.Open("../db/reddit_vm.csv")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("Successfully Opened CSV file")
+	defer csvFile.Close()
 
-	// Get a Tx for making transaction requests.
 	tx, err := db.Begin()
 	if err != nil {
 		return
 	}
-	// Defer a rollback in case anything fails.
 	defer tx.Rollback()
 
-	tx.Stmt(updateMoney).Exec(value)
+	csvLines, err := csv.NewReader(csvFile).ReadAll()
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, line := range csvLines {
+		Result := insertLine{
+			title:     line[0],
+			score:     line[1],
+			id:        line[2],
+			url:       line[3],
+			commsNum:  line[4],
+			created:   line[5],
+			body:      line[6],
+			timestamp: line[7],
+		}
 
+		tx.Stmt(insertNewLine).Exec(Result.title, Result.score, Result.id, Result.url, Result.commsNum, Result.created, Result.body, Result.timestamp)
+
+	}
 	tx.Commit()
 
 }
