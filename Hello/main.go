@@ -10,7 +10,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-type Teste struct {
+type QueryResult struct {
 	ID    int64
 	Value string
 }
@@ -59,9 +59,9 @@ func main() {
 }
 
 // albumsByArtist queries for albums that have the specified artist name.
-func getRows(id int) ([]Teste, error) {
+func getRows(id int) ([]QueryResult, error) {
 	// An albums slice to hold data from returned rows.
-	var idResult []Teste
+	var idResult []QueryResult
 
 	rows, err := db.Query("SELECT * FROM teste WHERE id = ?", id)
 	if err != nil {
@@ -70,7 +70,7 @@ func getRows(id int) ([]Teste, error) {
 	defer rows.Close()
 	// Loop through rows, using Scan to assign column data to struct fields.
 	for rows.Next() {
-		var result Teste
+		var result QueryResult
 		if err := rows.Scan(&result.ID, &result.Value); err != nil {
 			return nil, fmt.Errorf("ids %q: %v", id, err)
 		}
@@ -83,7 +83,7 @@ func getRows(id int) ([]Teste, error) {
 }
 
 func readCSV() {
-	csvFile, err := os.Open("db/reddit_vm.csv")
+	csvFile, err := os.Open("../db/reddit_vm.csv")
 	if err != nil {
 		fmt.Println(err)
 	}
