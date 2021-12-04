@@ -10,10 +10,10 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-type QueryResult struct {
-	ID    int64
-	Value string
-}
+// type QueryResult struct {
+// 	ID    int64
+// 	Value string
+// }
 
 type insertLine struct {
 	title     string
@@ -35,8 +35,9 @@ func main() {
 		Passwd: "root",
 		Net:    "tcp",
 		Addr:   "localhost:3306",
-		DBName: "bdii",
+		DBName: "bdii_tp1",
 	}
+
 	// Get a database handle.
 	var err error
 	db, err = sql.Open("mysql", cfg.FormatDSN())
@@ -44,45 +45,78 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal(pingErr)
-	}
-	fmt.Println("Connected!")
-	albums, err := getRows(1)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("IDs found: %v\n", albums)
+	//db.SetMaxOpenConns(1)
 
-	readCSV()
+	defer db.Close()
+	//db.SetConnMaxLifetime(20)
+
+	// pingErr := db.Ping()
+	// if pingErr != nil {
+	// 	log.Fatal(pingErr)
+	// }
+	// fmt.Println("Connected!")
+	// albums, err := getRows(1)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Printf("IDs found: %v\n", albums)
+	// explicitInsert(insertLine{
+	// 	title:     "teste",
+	// 	score:     "1",
+	// 	id:        "2",
+	// 	url:       "teste",
+	// 	commsNum:  "123",
+	// 	created:   "hoje",
+	// 	body:      "oi",
+	// 	timestamp: "ontem",
+	// })
+	implicitInsert()
+	//readCSV()
+	deleteAll()
 }
 
-// albumsByArtist queries for albums that have the specified artist name.
-func getRows(id int) ([]QueryResult, error) {
-	// An albums slice to hold data from returned rows.
-	var idResult []QueryResult
+// // albumsByArtist queries for albums that have the specified artist name.
+// func getRows(id int) ([]QueryResult, error) {
+// 	// An albums slice to hold data from returned rows.
+// 	var idResult []QueryResult
 
-	rows, err := db.Query("SELECT * FROM teste WHERE id = ?", id)
+// 	rows, err := db.Query("SELECT * FROM arquivo WHERE id = ?", id)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("ids %q: %v", id, err)
+// 	}
+// 	defer rows.Close()
+// 	// Loop through rows, using Scan to assign column data to struct fields.
+// 	for rows.Next() {
+// 		var result QueryResult
+// 		if err := rows.Scan(&result.ID, &result.Value); err != nil {
+// 			return nil, fmt.Errorf("ids %q: %v", id, err)
+// 		}
+// 		idResult = append(idResult, result)
+// 	}
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("ids %q: %v", id, err)
+// 	}
+// 	return idResult, nil
+// }
+
+func explicitInsert(value insertLine) {
+	updateMoney, err := db.Prepare("INSERT INTO teste set value=?")
+
+	// Get a Tx for making transaction requests.
+	tx, err := db.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("ids %q: %v", id, err)
+		return
 	}
-	defer rows.Close()
-	// Loop through rows, using Scan to assign column data to struct fields.
-	for rows.Next() {
-		var result QueryResult
-		if err := rows.Scan(&result.ID, &result.Value); err != nil {
-			return nil, fmt.Errorf("ids %q: %v", id, err)
-		}
-		idResult = append(idResult, result)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("ids %q: %v", id, err)
-	}
-	return idResult, nil
+	// Defer a rollback in case anything fails.
+	defer tx.Rollback()
+
+	tx.Stmt(updateMoney).Exec(value)
+
+	tx.Commit()
+
 }
 
-func readCSV() {
+func implicitInsert() {
 	csvFile, err := os.Open("../db/reddit_vm.csv")
 	if err != nil {
 		fmt.Println(err)
@@ -95,7 +129,7 @@ func readCSV() {
 		fmt.Println(err)
 	}
 	for _, line := range csvLines {
-		emp := insertLine{
+		Result := insertLine{
 			title:     line[0],
 			score:     line[1],
 			id:        line[2],
@@ -105,6 +139,34 @@ func readCSV() {
 			body:      line[6],
 			timestamp: line[7],
 		}
-		fmt.Println(emp.title + " " + emp.id + " " + emp.timestamp + " done")
+
+		rows, err := db.Query("INSERT INTO arquivo(title, score, id, url, comms_num, created, body, timestamp) VALUES (?,?,?,?,?,?,?,?)", Result.title, Result.score, Result.id, Result.url, Result.commsNum, Result.created, Result.body, Result.timestamp)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			rows.Close()
+		}
+		//fmt.Println(Result.id + " inserted")
 	}
+}
+
+// func readCSV() []insertLine {
+// 	results := []*insertLine{}
+// 	f, err := os.Open("../db/reddit_vm.csv")
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	defer f.Close()
+
+// 	// Read File into a Variable
+// 	// results, err := csv.NewReader(f).ReadAll()
+// 	return results
+// }
+
+func deleteAll() {
+	rows, err := db.Query("DELETE FROM arquivo WHERE 1=1")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
 }
