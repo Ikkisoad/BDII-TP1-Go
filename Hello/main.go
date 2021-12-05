@@ -11,11 +11,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// type QueryResult struct {
-// 	ID    int64
-// 	Value string
-// }
-
 type insertLine struct {
 	title     string
 	score     string
@@ -49,50 +44,14 @@ func main() {
 	//db.SetMaxOpenConns(1)
 
 	defer db.Close()
-	//db.SetConnMaxLifetime(20)
 
-	// pingErr := db.Ping()
-	// if pingErr != nil {
-	// 	log.Fatal(pingErr)
-	// }
-	// fmt.Println("Connected!")
-	// albums, err := getRows(1)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Printf("IDs found: %v\n", albums)
 	fmt.Println(time.Now())
 	explicitInsert()
 	fmt.Println(time.Now())
 	implicitInsert()
 	fmt.Println(time.Now())
-	//readCSV()
 	deleteAll()
 }
-
-// // albumsByArtist queries for albums that have the specified artist name.
-// func getRows(id int) ([]QueryResult, error) {
-// 	// An albums slice to hold data from returned rows.
-// 	var idResult []QueryResult
-
-// 	rows, err := db.Query("SELECT * FROM arquivo WHERE id = ?", id)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("ids %q: %v", id, err)
-// 	}
-// 	defer rows.Close()
-// 	// Loop through rows, using Scan to assign column data to struct fields.
-// 	for rows.Next() {
-// 		var result QueryResult
-// 		if err := rows.Scan(&result.ID, &result.Value); err != nil {
-// 			return nil, fmt.Errorf("ids %q: %v", id, err)
-// 		}
-// 		idResult = append(idResult, result)
-// 	}
-// 	if err := rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("ids %q: %v", id, err)
-// 	}
-// 	return idResult, nil
-// }
 
 func explicitInsert() {
 	insertNewLine, err := db.Prepare("INSERT INTO arquivo(title, score, id, url, comms_num, created, body, timestamp) VALUES (?,?,?,?,?,?,?,?)")
@@ -103,7 +62,7 @@ func explicitInsert() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Successfully Opened CSV file")
+	fmt.Println("Explicit:")
 	defer csvFile.Close()
 
 	tx, err := db.Begin()
@@ -140,7 +99,7 @@ func implicitInsert() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Successfully Opened CSV file")
+	fmt.Println("Implicit:")
 	defer csvFile.Close()
 
 	csvLines, err := csv.NewReader(csvFile).ReadAll()
@@ -169,23 +128,11 @@ func implicitInsert() {
 	}
 }
 
-// func readCSV() []insertLine {
-// 	results := []*insertLine{}
-// 	f, err := os.Open("../db/reddit_vm.csv")
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// 	defer f.Close()
-
-// 	// Read File into a Variable
-// 	// results, err := csv.NewReader(f).ReadAll()
-// 	return results
-// }
-
 func deleteAll() {
 	rows, err := db.Query("DELETE FROM arquivo WHERE 1=1")
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("All rows deleted")
 	defer rows.Close()
 }
